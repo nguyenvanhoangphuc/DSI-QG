@@ -1,18 +1,21 @@
-# Thực hiện cài đặt thư viện (update thư viện)
-pip install -r 1111_requirements.txt
+#!/bin/bash
 
-# Data Preparing
-Simply run `bash get_data.sh`. 
+# Set CUDA device to 1
+export CUDA_VISIBLE_DEVICES=0
 
-# Thực hiện huấn luyện DSI Original cho tiếng Anh (MSMarco)
+# Disable NCCL P2P and IB for compatibility with RTX 4000 series
+export NCCL_P2P_DISABLE=1
+export NCCL_IB_DISABLE=1
+
+# Train DSI
 python3 run.py \
         --task "DSI" \
         --model_name "google/mt5-base" \
-        --run_name "MSMARCO-100k-mt5-base-DSI" \
+        --run_name "LEGAL-ja-mt5-base-DSI" \
         --max_length 256 \
-        --train_file data/msmarco_data/100k/msmarco_DSI_train_data.json \
-        --valid_file data/msmarco_data/100k/msmarco_DSI_dev_data.json \
-        --output_dir "models/MSMARCO-100k-mt5-base-DSI" \
+        --train_file data/legal_data/ja_dsi_ds/train_data_dsi.json \
+        --valid_file data/legal_data/ja_dsi_ds/validation_data_dsi.json \
+        --output_dir "models/LEGAL-ja-mt5-base-DSI" \
         --learning_rate 0.0005 \
         --warmup_steps 10000 \
         --per_device_train_batch_size 4 \
@@ -32,19 +35,17 @@ python3 run.py \
         --metric_for_best_model Recall@50 \
         --greater_is_better True
 
-Thời gian huấn luyện: 14 tiếng 
-
 # Thực hiện huấn luyện DSI-QG
 ## Step 1: Run the following command to train a mT5-large cross-lingual query generation model.
 
 python3 run.py \
         --task "docTquery" \
         --model_name "google/mt5-large" \
-        --run_name "docTquery-MSMARCO" \
+        --run_name "docTquery-LEGAL" \
         --max_length 128 \
-        --train_file data/msmarco_data/100k/msmarco_DSI_train_data.json \
-        --valid_file data/msmarco_data/100k/msmarco_DSI_dev_data.json \
-        --output_dir "models/msmarco_docTquery_mt5_large" \
+        --train_file data/legal_data/ja_dsi_ds/train_data_dsi.json \
+        --valid_file data/legal_data/ja_dsi_ds/validation_data_dsi.json \
+        --output_dir "models/legal_docTquery_mt5_large" \
         --learning_rate 0.0001 \
         --warmup_steps 0 \
         --per_device_train_batch_size 2 \
@@ -62,35 +63,31 @@ python3 run.py \
         --logging_steps 100 \
         --dataloader_drop_last False
 
-Do đó để tiết kiệm thời gian thì sử dụng pretrained mà họ đã cung cấp: castorini/doc2query-t5-large-msmarco
-
 ## Step 2: run the query generation for all the documents in the corpus
 
 python3 run.py \
         --task generation \
         --model_name google/mt5-large \
-        --model_name castorini/doc2query-t5-large-msmarco \
+        --model_path models/legal_docTquery_mt5_large/checkpoint-xxx \  # thay bằng checkpoint của Step1
         --per_device_eval_batch_size 2 \
-        --run_name docTquery-MSMARCO-generation \
+        --run_name docTquery-LEGAL-generation \
         --max_length 256 \
-        --valid_file data/msmarco_data/100k/msmarco_corpus.tsv \
+        --valid_file data/legal_data/ja_dsi_ds/legal_corpus.tsv \
         --output_dir temp \
         --dataloader_num_workers 10 \
         --report_to wandb \
         --logging_steps 100 \
         --num_return_sequences 10
 
-Ở bước này nó sử dụng model đã được huấn luyện ở bước 1 để thực hiện sinh ra 10 query tương ứng cho 
-
 ## Step 3: Train DSI-QG with query-represented corpus
 python3 run.py \
         --task "DSI" \
         --model_name "google/mt5-base" \
-        --run_name "XORQA-100k-mt5-base-DSI-QG" \
+        --run_name "LEGAL-ja-mt5-base-DSI-QG" \
         --max_length 32 \
-        --train_file data/xorqa_data/100k/xorqa_corpus.tsv.q10.docTquery \
-        --valid_file data/xorqa_data/100k/xorqa_DSI_dev_data.json \
-        --output_dir "models/XORQA-100k-mt5-base-DSI-QG" \
+        --train_file data/xorqa_data/ja/xorqa_corpus.tsv.q10.docTquery \
+        --valid_file data/xorqa_data/ja/xorqa_DSI_dev_data.json \
+        --output_dir "models/LEGAL-ja-mt5-base-DSI-QG" \
         --learning_rate 0.0005 \
         --warmup_steps 100000 \
         --per_device_train_batch_size 32 \
