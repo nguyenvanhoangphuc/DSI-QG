@@ -1,6 +1,9 @@
 # Thực hiện cài đặt thư viện (update thư viện)
 pip install -r 1111_requirements.txt
 
+# Data Preparing
+Simply run `bash get_data.sh`. 
+
 # Thực hiện huấn luyện DSI Original cho tiếng Anh (MSMarco)
 python3 run.py \
         --task "DSI" \
