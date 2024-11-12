@@ -128,3 +128,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data, models
+cache/
+data/cache/
+data/msmarco_data/100k/
+models/
+wandb/
