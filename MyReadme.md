@@ -42,13 +42,13 @@ python3 run.py \
         --model_name "google/mt5-large" \
         --run_name "docTquery-MSMARCO" \
         --max_length 128 \
-        --train_file data/msmarco_data/100k/msmarco_docTquery_train_data.json \
-        --valid_file data/msmarco_data/100k/msmarco_docTquery_dev_data.json \
+        --train_file data/msmarco_data/100k/msmarco_DSI_train_data.json \
+        --valid_file data/msmarco_data/100k/msmarco_DSI_dev_data.json \
         --output_dir "models/msmarco_docTquery_mt5_large" \
         --learning_rate 0.0001 \
         --warmup_steps 0 \
-        --per_device_train_batch_size 4 \
-        --per_device_eval_batch_size 4 \
+        --per_device_train_batch_size 2 \
+        --per_device_eval_batch_size 2 \
         --evaluation_strategy steps \
         --eval_steps 100 \
         --max_steps 2000 \
@@ -57,7 +57,7 @@ python3 run.py \
         --save_steps 100 \
         --save_total_limit 2 \
         --load_best_model_at_end \
-        --gradient_accumulation_steps 4 \
+        --gradient_accumulation_steps 2 \
         --report_to wandb \
         --logging_steps 100 \
         --dataloader_drop_last False
@@ -69,11 +69,11 @@ Do đó để tiết kiệm thời gian thì sử dụng pretrained mà họ đ�
 python3 run.py \
         --task generation \
         --model_name google/mt5-large \
-        --model_path models/xorqa_docTquery_mt5_large/checkpoint-xxx \
-        --per_device_eval_batch_size 32 \
-        --run_name docTquery-XORQA-generation \
+        --model_name castorini/doc2query-t5-large-msmarco \
+        --per_device_eval_batch_size 2 \
+        --run_name docTquery-MSMARCO-generation \
         --max_length 256 \
-        --valid_file data/xorqa_data/100k/xorqa_corpus.tsv \
+        --valid_file data/msmarco_data/100k/msmarco_corpus.tsv \
         --output_dir temp \
         --dataloader_num_workers 10 \
         --report_to wandb \
