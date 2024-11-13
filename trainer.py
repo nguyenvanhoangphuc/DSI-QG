@@ -47,8 +47,10 @@ class DSITrainer(Trainer):
             if batch_beams.shape[-1] < self.id_max_length:
                 batch_beams = self._pad_tensors_to_max_len(batch_beams, self.id_max_length)
 
+            print("inputs['labels']", inputs['labels'])
             inputs['labels'] = self._pad_tensors_to_max_len(inputs['labels'], self.id_max_length)
-
+            print("inputs['labels']", inputs['labels'])
+            print("===="*20)
             batch_beams = batch_beams.reshape(inputs['input_ids'].shape[0], 20, -1)
 
         return (None, batch_beams, inputs['labels'])

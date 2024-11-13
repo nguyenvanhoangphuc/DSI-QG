@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from tqdm import tqdm
 import datasets
 from torch.utils.data import Dataset
+import torch
 from transformers import PreTrainedTokenizer, DataCollatorWithPadding
 
 
@@ -25,9 +26,19 @@ class IndexingTrainDataset(Dataset):
         self.tokenizer = tokenizer
         self.remove_prompt = remove_prompt
         self.total_len = len(self.train_data)
+        self.is_train = 'train' in path_to_data
         self.valid_ids = set()
-        for data in tqdm(self.train_data):
-            self.valid_ids.add(str(data['text_id']))
+        # old
+        # for data in tqdm(self.train_data):
+        #     self.valid_ids.add(str(data['text_id']))
+        # new
+        print("path_to_data", path_to_data)
+        if 'train' in path_to_data:
+            for data in tqdm(self.train_data):
+                self.valid_ids.add(str(data['text_id']))
+        else: 
+            for data in tqdm(self.train_data):
+                self.valid_ids.update(tuple([str(text_id) for text_id in data['list_text_id']]))
 
     def __len__(self):
         return self.total_len
@@ -41,7 +52,7 @@ class IndexingTrainDataset(Dataset):
                                    return_tensors="pt",
                                    truncation='only_first',
                                    max_length=self.max_length).input_ids[0]
-        return input_ids, str(data['text_id'])
+        return input_ids, str(data['text_id']) if self.is_train else [str(text_id) for text_id in data['list_text_id']]
 
 
 class GenerateDataset(Dataset):
@@ -99,9 +110,23 @@ class IndexingCollator(DataCollatorWithPadding):
         docids = [x[1] for x in features]
         inputs = super().__call__(input_ids)
 
-        labels = self.tokenizer(
-            docids, padding="longest", return_tensors="pt"
-        ).input_ids
+        print("docids", docids)
+        # old
+        # labels = self.tokenizer(
+        #     docids, padding="longest", return_tensors="pt"
+        # ).input_ids
+        # new
+        # Check if the input is a flat list or a nested list
+        if all(isinstance(d, str) for d in docids):
+            # Case 1: Flat list
+            labels = self.tokenizer(docids, padding="longest", return_tensors="pt").input_ids
+        elif all(isinstance(d, list) for d in docids):
+            # Case 2: Nested list
+            labels_list  = [self.tokenizer(d, padding="longest", return_tensors="pt").input_ids for d in docids]
+            labels = torch.stack(labels_list)
+        else:
+            raise ValueError("Invalid format of docids. Must be a flat list or a nested list.")
+        print("labels", labels)
 
         # replace padding token id's of the labels by -100 according to https://huggingface.co/docs/transformers/model_doc/t5#training
         labels[labels == self.tokenizer.pad_token_id] = -100

@@ -134,6 +134,7 @@ cache/
 data/cache/
 data/msmarco_data/100k/
 data/legal_data/
+data/new_legal_data/
 data/msmarco_data/20k/
 models/
 wandb/
